@@ -53,6 +53,4 @@ typedef nx_struct JMES {
   nx_uint16_t type; /* type of message */
   nx_uint16_t value; /* value of message */
 } JMES_t;
-
-
 #endif
