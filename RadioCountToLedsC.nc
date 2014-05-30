@@ -1,7 +1,6 @@
 #include "Timer.h"
 #include "RadioCountToLeds.h"
 
-
 module RadioCountToLedsC @safe() {
 	uses {
 		interface Leds;
@@ -23,19 +22,19 @@ implementation {
 	uint16_t _led = LED0;	
 
 	event void Boot.booted() {
-		call AMControl.start();
+		if(TOS_NODE_ID == MASTER_RADIO_ID){
+			call AMControl.start();
+		}
 	}
 
-	event void AMControl.startDone(error_t err) {
-		if(TOS_NODE_ID == MASTER_RADIO_ID){
-			if (err == SUCCESS) {
-				call Leds.led0On();
-				call MilliTimer.startOneShot(1);
-			}
-			else {
-				call AMControl.start();
-			}
+	event void AMControl.startDone(error_t err) {		
+		if (err == SUCCESS) {
+			call Leds.led0On();
+			call MilliTimer.startOneShot(1);
 		}
+		else {
+			call AMControl.start();
+		}		
 	}
 
 	event void AMControl.stopDone(error_t err) {
