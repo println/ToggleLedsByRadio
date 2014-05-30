@@ -8,3 +8,10 @@
 1. O aplicativo roda indefinidamente.
 
 Mostrar o resultado no TOSSIM e com nós reais (eu fornecerei os nós no dia da apresentação)
+
+##Detalhes úteis
+
+####pegar id do nó
+´´´
+TOS_NODE_ID
+´´´ 
