@@ -11,7 +11,7 @@ Mostrar o resultado no TOSSIM e com nós reais (eu fornecerei os nós no dia da 
 
 ##Detalhes úteis
 
-####pegar id do nó
+####Pegar id do nó
 
 ```
 TOS_NODE_ID
