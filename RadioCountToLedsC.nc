@@ -8,6 +8,7 @@ module RadioCountToLedsC @safe() {
 		interface Receive;
 		interface AMSend;
 		interface Timer<TMilli> as MilliTimer;
+		interface Timer<TMilli> as CheckMilliTimer;
 		interface SplitControl as AMControl;
 		interface Packet;
 	}
@@ -15,42 +16,55 @@ module RadioCountToLedsC @safe() {
 
 implementation {
 
-	void trigger_timers_oneshot_event();
+	void trigger_timers_oneshot_event(uint16_t delay);
 
 	message_t _packet;
 	bool _locked;
-	uint16_t _led = LED0;	
+	bool _cheking;
+	uint16_t _led = LED0;
+	uint16_t _elapsed_time = 0;
 
-	event void Boot.booted() {
-		if(TOS_NODE_ID == MASTER_RADIO_ID){
+	event void Boot.booted() {		
 			call AMControl.start();
-		}
 	}
 
 	event void AMControl.startDone(error_t err) {		
 		if (err == SUCCESS) {
-			call Leds.led0On();
-			call MilliTimer.startOneShot(1);
+			if(TOS_NODE_ID == MASTER_RADIO_ID){
+				call Leds.led0On();
+				trigger_timers_oneshot_event(1);
+			}
+			call CheckMilliTimer.startPeriodic(CHECKING_INTERVAL);			
 		}
 		else {
 			call AMControl.start();
-		}		
+		}
 	}
 
 	event void AMControl.stopDone(error_t err) {
 		// do nothing
 	}
 
+	event void CheckMilliTimer.fired() {		
+		_elapsed_time = _elapsed_time + CHECKING_INTERVAL;
+
+		if(_elapsed_time >= INACTIVE_TIME_LIMIT){
+			_cheking = TRUE;
+			trigger_timers_oneshot_event(1);
+		}
+		else{
+			_cheking = FALSE;
+		}	
+	}
+
 	event void MilliTimer.fired() {		
 
 		dbg("RadioCountToLedsC", "RadioCountToLedsC: timer fired		led is %hu.\n", _led);
 		if (_locked) {
-
-			if(TOS_NODE_ID != MASTER_RADIO_ID){
-				call MilliTimer.startOneShot(50);
-			}
-
-			return;
+				if(!_cheking){
+					trigger_timers_oneshot_event(RESEND_DELAY);
+				}
+				return;
 		}
 		else {
 			JMES_t* rcm = (JMES_t*)call Packet.getPayload(&_packet, sizeof(JMES_t));
@@ -84,9 +98,11 @@ implementation {
 		if (len != sizeof(JMES_t)) {
 			return bufPtr;
 		}
-		else {
+		else {			
 
-			JMES_t* rcm = (JMES_t*)payload;			
+			JMES_t* rcm = (JMES_t*)payload;
+
+			_elapsed_time = 0;		
 
 			if (rcm->next_node_id == TOS_NODE_ID) {
 
@@ -115,10 +131,9 @@ implementation {
 					call Leds.led2Off();
 				}
 
-				trigger_timers_oneshot_event();			
+				trigger_timers_oneshot_event(SEND_DELAY);			
 
 			}
-
 			return bufPtr;
 		}
 	}
@@ -129,8 +144,8 @@ implementation {
 		}
 	}
 
-	void trigger_timers_oneshot_event(){
-		call MilliTimer.startOneShot(DELAY);
+	void trigger_timers_oneshot_event(uint16_t delay){
+		call MilliTimer.startOneShot(delay);
 	}
 }
 

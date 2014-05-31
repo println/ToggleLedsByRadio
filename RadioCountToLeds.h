@@ -10,7 +10,10 @@ enum {
   LED1 = 1,
   LED2 = 2,
   LEDS_TURNOFF = 3,
-  DELAY = 1000, /*milliseconds*/
+  SEND_DELAY = 1000, /*milliseconds*/
+  RESEND_DELAY = 50,
+  CHECKING_INTERVAL = 1000,
+  INACTIVE_TIME_LIMIT = 6000,
 };
 
 typedef nx_struct JMES {
