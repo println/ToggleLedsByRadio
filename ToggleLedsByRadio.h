@@ -1,8 +1,8 @@
-#ifndef RADIO_COUNT_TO_LEDS_H
-#define RADIO_COUNT_TO_LEDS_H
+#ifndef TOGGLE_LEDS_BY_RADIO_H
+#define TOGGLE_LEDS_BY_RADIO_H
 
 enum {
-  AM_RADIO_COUNT_MSG = 6,
+  RADIO_CHANNEL = 6,
   MASTER_RADIO_ID = 1,
   SECONDARY_RADIO_ID = 2,
   TERTIARY_RADIO_ID = 3,
@@ -16,8 +16,9 @@ enum {
   INACTIVE_TIME_LIMIT = 6000,
 };
 
-typedef nx_struct JMES {
-  nx_uint16_t next_node_id; /* next node id */
-  nx_uint16_t led_id; /* led id */
-} JMES_t;
+typedef nx_struct AM_MESSAGE {
+  nx_uint8_t next_node_id; /* next node id */
+  nx_uint8_t led_id; /* led id */
+  nx_uint16_t token;
+} AM_MESSAGE_t;
 #endif

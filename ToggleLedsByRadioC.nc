@@ -1,7 +1,7 @@
 #include "Timer.h"
-#include "RadioCountToLeds.h"
+#include "ToggleLedsByRadio.h"
 
-module RadioCountToLedsC @safe() {
+module ToggleLedsByRadioC @safe() {
 	uses {
 		interface Leds;
 		interface Boot;
@@ -11,12 +11,15 @@ module RadioCountToLedsC @safe() {
 		interface Timer<TMilli> as CheckMilliTimer;
 		interface SplitControl as AMControl;
 		interface Packet;
+		interface Random;
 	}
 }
 
 implementation {
 
 	void trigger_timers_oneshot_event(uint16_t delay);
+	uint16_t generate_token(uint16_t current_token);
+	bool is_correct_token(AM_MESSAGE_t* message, uint16_t token);
 
 	message_t _packet;
 	bool _locked;
@@ -25,19 +28,22 @@ implementation {
 	bool _checking_running;
 	uint16_t _led = LED0;
 	uint16_t _elapsed_time = 0;
+	uint16_t _message_token = 0;
+
 
 	event void Boot.booted() {		
 			call AMControl.start();
 	}
 
 	event void AMControl.startDone(error_t err) {		
-		if (err == SUCCESS) {
+		if (err == SUCCESS) {	
 			if(TOS_NODE_ID == MASTER_RADIO_ID){/*somente o master eh inicializado*/
 				call Leds.led0On();/*led 0 liga neste momento*/
 				call CheckMilliTimer.startOneShot(CHECKING_INTERVAL);/*servico de checagem eh ligado*/
 				trigger_timers_oneshot_event(1);/*mensagem inicial eh enviada*/
 				_initialized = TRUE;
 				_checking_running = TRUE;
+				_message_token = generate_token(_message_token);
 			}
 		}
 		else {
@@ -66,9 +72,7 @@ implementation {
 		}
 	}
 
-	event void MilliTimer.fired() {/*envio de mensagem*/		
-
-		dbg("RadioCountToLedsC", "RadioCountToLedsC: timer fired		led is %hu.\n", _led);
+	event void MilliTimer.fired() {/*envio de mensagem*/	
 		if (_locked) {/*renviar mensagem se o radio estiver ocupado*/
 				if(!_checking){/*nao reenvia se for uma mensagem de checagem*/
 					trigger_timers_oneshot_event(RESEND_DELAY);
@@ -76,7 +80,7 @@ implementation {
 				return;/*sai do evento*/
 		}
 		else {
-			JMES_t* rcm = (JMES_t*)call Packet.getPayload(&_packet, sizeof(JMES_t));
+			AM_MESSAGE_t* rcm = (AM_MESSAGE_t*)call Packet.getPayload(&_packet, sizeof(AM_MESSAGE_t));
 			
 			if (rcm == NULL) {
 				return;
@@ -92,36 +96,44 @@ implementation {
 				rcm->next_node_id = MASTER_RADIO_ID;
 			}
 
+			rcm->token = _message_token;
 			rcm->led_id = _led;/*combinacao de leds que devem ser acionados*/
 
-			if (call AMSend.send(AM_BROADCAST_ADDR, &_packet, sizeof(JMES_t)) == SUCCESS) {/*envio de mensagem*/
-				dbg("RadioCountToLedsC", "RadioCountToLedsC: _packet sent.\n", _led);	
+			if (call AMSend.send(AM_BROADCAST_ADDR, &_packet, sizeof(AM_MESSAGE_t)) == SUCCESS) {/*envio de mensagem*/
 				_locked = TRUE;
 			}
 		}
 	}
 
 	event message_t* Receive.receive(message_t* bufPtr,void* payload, uint8_t len) {/*recebimento de mensagem*/
-		dbg("RadioCountToLedsC", "Received _packet of length %hhu.\n", len);
 
-		if (len != sizeof(JMES_t)) {
+		if (len != sizeof(AM_MESSAGE_t)) {
 			return bufPtr;
 		}
 		else {			
 
-			JMES_t* rcm = (JMES_t*)payload;
+			AM_MESSAGE_t* rcm = (AM_MESSAGE_t*)payload;
 
-			_elapsed_time = 0;		
+					
 
 			if (rcm->next_node_id == TOS_NODE_ID) {
 
+				if (!is_correct_token(rcm,_message_token)){
+					return bufPtr;
+				}
+
+				_elapsed_time = 0;
+
 				if (rcm->next_node_id == MASTER_RADIO_ID) {/*master faz o chaveamento dos leds*/
+					_message_token = generate_token(_message_token);
 					_led++;
 					if(_led & 0x4){
 						_led = LED0;
 					}
 				}
 				else{/*os outros apenas realizam a atribuicao de leds*/
+					_elapsed_time = 0;
+					_message_token = rcm->token;
 					_led = rcm->led_id;
 					_initialized = TRUE;
 				}
@@ -167,6 +179,31 @@ implementation {
 
 	void trigger_timers_oneshot_event(uint16_t delay){/*funcao para disparar o envio de mensagem, com delay*/
 		call MilliTimer.startOneShot(delay);
+	}
+
+	uint16_t generate_token(uint16_t current_token){
+		uint16_t new_token = current_token;
+		while(new_token == current_token){
+			new_token = call Random.rand16();
+		}
+		return new_token;
+	}
+
+	bool is_correct_token(AM_MESSAGE_t* message, uint16_t token){
+		uint16_t node_id = TOS_NODE_ID;
+
+		if(MASTER_RADIO_ID == node_id){
+			if(message->token == token){
+				return TRUE;
+			}
+		}
+		else{
+			if(message->token != token){
+				return TRUE;
+			}
+		}
+
+		return FALSE;
 	}
 }
 
