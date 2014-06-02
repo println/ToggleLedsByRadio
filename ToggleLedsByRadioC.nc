@@ -38,12 +38,12 @@ implementation {
 	event void AMControl.startDone(error_t err) {		
 		if (err == SUCCESS) {	
 			if(TOS_NODE_ID == MASTER_RADIO_ID){/*somente o master eh inicializado*/
+				_message_token = generate_token(_message_token);
 				call Leds.led0On();/*led 0 liga neste momento*/
 				call CheckMilliTimer.startOneShot(CHECKING_INTERVAL);/*servico de checagem eh ligado*/
 				trigger_timers_oneshot_event(1);/*mensagem inicial eh enviada*/
 				_initialized = TRUE;
-				_checking_running = TRUE;
-				_message_token = generate_token(_message_token);
+				_checking_running = TRUE;		
 			}
 		}
 		else {
