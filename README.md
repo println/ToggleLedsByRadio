@@ -1,18 +1,10 @@
 #Sistemas de tempo real e embarcado
 
-###Implementar um aplicativo que use 3 nós.
+###Aplicativo que use 3 nós.
 
-1. O primeiro nó pisca um LED e manda o segundo nó piscar um LED.
-1. O segundo nó pisca seu LED e manda o terceiro nó piscar um LED.
-1. O terceiro nó pisca seu LED e manda o primeiro nó piscar um LED.
-1. O aplicativo roda indefinidamente.
+1. O primeiro nó acende o LED vermelho e manda o segundo nó acender o mesmo.
+1. O segundo, ao acender seu LED, manda o terceiro nó acender o mesmo.
+1. O terceiro nó, ao acender seu LED vermelho, envia a mensagem para o primeiro nó, o qual vai acender o LED verde e repassar.
+1. Quando os três LEDs estiverem acessos, o primeiro nó irá enviar o comando de desligar todos.
+1. O aplicativo roda indefinidamente.  
 
-Mostrar o resultado no TOSSIM e com nós reais (eu fornecerei os nós no dia da apresentação)
-
-##Detalhes úteis
-
-####Pegar id do nó
-
-```
-TOS_NODE_ID
-```
