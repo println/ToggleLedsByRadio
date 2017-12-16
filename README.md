@@ -1,6 +1,13 @@
-#Sistemas de tempo real e embarcado
+# Real Time and Embedded Systems
 
-###Aplicativo que use 3 nós.
+A simple test application to blink radio's led on data transfer process
+
+### Tecnology
+- nesC
+- [MICAz](http://tinyos.stanford.edu/tinyos-wiki/index.php/MICAz)
+- [IRIS](http://tinyos.stanford.edu/tinyos-wiki/index.php/Iris)
+
+###A plicativo que use 3 nós.
 
 1. O primeiro nó acende o LED vermelho e manda o segundo nó acender o mesmo.
 1. O segundo, ao acender seu LED, manda o terceiro nó acender o mesmo.
